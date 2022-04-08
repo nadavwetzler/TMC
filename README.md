@@ -15,3 +15,9 @@ where t is the time window (in days). This results in triggering windows of 148,
 all exceeding the 60-day window for the fixed-time procedure. 
 
 ![TMC](https://user-images.githubusercontent.com/88764899/162423850-9ec5007c-4561-45f5-a335-c99db70098f3.png)
+
+# Run
+To run the TMC algorithm use Run_TMC.py
+
+The example file is for Southern California from 1985 to 2020, (https://service.scedc.caltech.edu/ftp/catalogs/SCEC_DC/) 
+
