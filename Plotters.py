@@ -12,7 +12,7 @@ import time
 
 
 def set_box_aspect(ax, ratio):
-    #ratio = 0.3
+    # ratio = 0.3
     xleft, xright = ax.get_xlim()
     ybottom, ytop = ax.get_ylim()
     # the abs method is used to make sure that all numbers are positive
@@ -36,9 +36,6 @@ def plotMapC(ax, clust, Lats, Lons, Lon0, Lat0, ot, m0, cat, years):
     dlat = np.abs(np.diff(Lats))[0]
     dlon = np.abs(np.diff(Lons))[0]
     m = Basemap(ax=ax,  projection='merc', llcrnrlat=min(Lats), urcrnrlat=max(Lats), llcrnrlon=min(Lons), urcrnrlon=max(Lons), lat_ts=1, resolution='i')
-    # m = Basemap(ax=ax,  projection='cyl', llcrnrlat=min(Lats), urcrnrlat=max(Lats), llcrnrlon=min(Lons), urcrnrlon=max(Lons), resolution='i')
-    # m = Basemap(ax=ax,  projection='lcc', llcrnrlat=min(Lats), urcrnrlat=max(Lats), llcrnrlon=min(Lons), urcrnrlon=max(Lons), resolution='i')
-    # m = Basemap(ax=ax,  projection='tmerc', llcrnrlat=min(Lats), urcrnrlat=max(Lats), llcrnrlon=min(Lons), urcrnrlon=max(Lons), resolution='i', lon_0=Lon0, lat_0=Lat0)
     try:
         m.drawcoastlines(color='k', linewidth=0.2)
     except:
@@ -92,9 +89,7 @@ def plotMapC(ax, clust, Lats, Lons, Lon0, Lat0, ot, m0, cat, years):
         [xr, yr, xyr] = MakeCircleUTM(r_predicted, Lon0, Lat0)
         xr0, yr0 = m(xr, yr)
         ax.plot(xr0, yr0, c='m', label='E.R.: %d km' % int(r_predicted / 1000))
-        # ax.add_patch(mpatches.Circle(xy=[Lon0, Lat0], radius=Ro, color='red', alpha=0.3, zorder=30))
 
-    # ax.legend(loc='upper left')
 
 def scaleT(T, len, t0, t1):
         T = T[np.logical_and(T>t0, T<t1)] - t0
@@ -135,8 +130,6 @@ def plotLatTimeClust(ax, clust, ot,Lat0, M0, cat, Lats,Lons):
     ax.scatter(Time[selAS60], clust['Lat'][selAS60].values,s=25, facecolors='none', edgecolors='r',label='AS: %d' % sum(selAS60))
     ax.scatter(-scaleT(-Time[selFSlong],30,60,ylong), clust['Lat'][selFSlong].values,s=25, edgecolors='b', facecolors='none')
     ax.scatter(scaleT(Time[selASlong],30,60,ylong), clust['Lat'][selASlong].values,s=25, edgecolors='r', facecolors='none')
-    # ax.scatter(np.log10(Time[selFS]), clust['Lat'][selFS].values,s=25, facecolors='none', edgecolors='b',label='FS: %d' % sum(np.logical_and(Time < 0, Time > -60)))
-    # ax.scatter(-np.log10(Time[selAS]), clust['Lat'][selAS].values,s=25, facecolors='none', edgecolors='r',label='AS: %d' % sum(np.logical_and(Time > 0, Time < 60)))
     ax.scatter(0, Lat0, 100, marker='*', color='m',alpha=1.0)
     ax.plot([30,30],Lats,'--k')
     ax.plot([-30,-30],Lats,'--k')
@@ -162,15 +155,10 @@ def plotR_TimeClust(ax, clust, ot,Lat0, Lon0, M0, cat, Lats, Lons, years):
     Ilat = np.logical_and(cat.Lat > min(Lats), cat.Lat < max(Lats))
     Ireg = np.logical_and(Ilat, Ilon)
     It60 = np.logical_and(T > -60, T < 60)
-    # It60 = np.logical_and(cat.ot > t0 - 60*3600*24, cat.ot < t0 + 60*3600*24)
-    # ItlongAS = np.logical_and(cat.ot > t0 + 60*3600*24, cat.ot < t0 + ylong*3600*24)
-    # ItlongFS = np.logical_and(cat.ot < t0 - 60*3600*24, cat.ot > t0 - ylong*3600*24)
     ItlongAS = np.logical_and(T > 60, T < ylong)
     ItlongFS = np.logical_and(T < -60, T > -ylong)
 
-    # R = DistLatLon(Lat0, Lon0, cat.Lat, cat.Long) * 1000
-    R = DistLatLonUTM(Lat0, Lon0, cat.Lat, cat.Long)
-    # Rc = DistLatLon(Lat0, Lon0, clust.Lat.values, clust.Lon.values) * 1000
+    R = DistLatLonUTM(Lat0, Lon0, cat.Lat.values, cat.Long.values)
     Rc = DistLatLonUTM(Lat0, Lon0, clust.Lat.values, clust.Long.values)
     [r_predicted, _] = WnCfaultL(M0,ifault=0)
     fact_r = AdjustEffectiveRadius(M0)
@@ -261,10 +249,8 @@ def plotTimesMclust(ax, clust, ot, M0, cat,Lats, Lons, years):
     ax.plot([60,60],[0, M0+1],'-k')
     ax.plot([-60,-60],[0, M0+1],'-k')
     ax.set_xlim([-90, 90])
-    # ax.set_xlim([-10, 10])
     ax.set_xticks([-90,-60,-30,0,30,60,90])
     ax.set_xticklabels(['-%d years' % years,'-60d','-30d','ot','30d','60d','%d years' % years])
-    # ax.legend(loc='upper left')
     ax.set_xlabel('Time from t0')
     ax.set_ylabel('Magnitude')
     ax.set_ylim([min(cat.M)-1.0, M0+1])
@@ -310,7 +296,6 @@ def plot_sequence(cat0):
         plotTimesMclust(ax1b, clust, CLUST['ot0'][ii], CLUST['m0'][ii], deCLUST, Lats, Lons, yearsLong)
         plotR_TimeClust(ax1c, clust, CLUST['ot0'][ii], CLUST['lat0'][ii], CLUST['lon0'][ii], CLUST['m0'][ii], deCLUST, Lats, Lons, yearsLong)
         set_box_aspect(ax1b, 0.5)
-        # set_box_aspect(ax1c, 0.5)
         ax1b.set_title(id2ctype(CLUST['c_type'][ii]))
         plb.suptitle('%s Mw%s' % (UTCDateTime(CLUST['ot0'][ii]).date, CLUST['m0'][ii]))
 
@@ -352,9 +337,7 @@ def map_seis(cat0):
     legend1._legend_title_box._children[0]._fontproperties._family = 'Impact'
     legend1._legend_title_box._children[0]._fontproperties.set_size(14)
     legend1.set_title(cat0.name)
-    # time.sleep(5)
     fig.tight_layout()
-    time.sleep(5)
     fig.savefig('figs/map.pdf')
 
 
