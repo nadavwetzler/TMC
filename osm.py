@@ -1,10 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # /********************************************************************************
-#    Copyright (C) by Ran Novitsky Nof                                            *
+#    Copyright (C) by Ran Novitsky Nof, 2019                                      *
 #                                                                                 *
-#    This file is part of E2ReviewTool                                            *
 #                                                                                 *
-#    E2ReviewTool is free software: you can redistribute it and/or modify         *
+#    osm is free software: you can redistribute it and/or modify                  *
 #    it under the terms of the GNU Lesser General Public License as published by  *
 #    the Free Software Foundation, either version 3 of the License, or            *
 #    (at your option) any later version.                                          *
@@ -17,10 +16,7 @@
 #    You should have received a copy of the GNU Lesser General Public License     *
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.        *
 # *********************************************************************************
-import sys
-#sys.path.insert(0, '/Users/nadavwetzler/Dropbox/Moment-tensor/Py_MT/TDMTW/')
 import numpy as np
-import scipy.misc
 try:
     from StringIO import StringIO
 except ImportError:
@@ -35,12 +31,17 @@ import logging
 logging.basicConfig(
     format='%(asctime)s | %(levelname)s | %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
 log = logging.getLogger('OSM')
-#log.setLevel(logging.DEBUG)
 log.setLevel(logging.ERROR)
 
 # util class for Open Street Map
 
 TILESARCHIVE = os.path.split(__file__)[0] + os.sep + 'tiles'
+
+# For more urls see: https://leaflet-extras.github.io/leaflet-providers/preview/
+# TILEURL = "http://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/"
+TILEURL = "http://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/"
+# Make sure the pattern is changed accordingly
+TILEPAT = "{Z}/{Y}/{X}.png"
 
 class OSM(object):
     latmax = 90.0
@@ -49,9 +50,7 @@ class OSM(object):
     lonmin = -180.0
     maxlevel = 17
     maxtilecash = 500
-    # Server = "http://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/"
-    Server = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/"
-    def __init__(self, ax, tileurl=str(Server), tilepat="{Z}/{Y}/{X}.png", tilearchive=TILESARCHIVE, mplconnect=True):
+    def __init__(self, ax, tileurl=TILEURL, tilepat=TILEPAT, tilearchive=TILESARCHIVE, mplconnect=True):
         # constants and defaults
         self.cashedtiles = {}
         self.tilesorder = []
@@ -78,12 +77,12 @@ class OSM(object):
         self.tilearchive = tilearchive
         # Add copyright text
         self.ax.text(0.99, 0.01, 'Leaflet | Tiles ' + u'\N{COPYRIGHT SIGN}' + 'Esri', color='#555555', ha='right', transform=ax.transAxes, name='Helvetica', fontsize=8, zorder=999)
-   
+
     def mplconnect(self):
         self.canvas.mpl_connect('draw_event', self.draw)
         self.canvas.mpl_connect('button_press_event', self.click)
-        self.canvas.mpl_connect('button_release_event', self.unclick)        
-        
+        self.canvas.mpl_connect('button_release_event', self.unclick)
+
     def click(self,event):
         self._button = self.canvas._button
 
@@ -95,8 +94,7 @@ class OSM(object):
         'add tile to axes images'
         y0, y1, x0, x1 = limits  # get tile extent
         try:
-            # data = scipy.misc.fromimage(Image.open(datafile))  # read tile image and convert to 2D array
-            data = np.asarray(Image.open(datafile))
+            data = np.array(Image.open(datafile))  # read tile image and convert to 2D array
         except IOError:
             log.error("Bad image file: {}. Please remove the file for next time.".format(datafile))
             data = np.zeros((256, 256, 3))  # use black image with red X.
@@ -174,15 +172,15 @@ class OSM(object):
 
     def tile2path(self, tilex, tiley, zoom):
         'get tile path'
-        if not os.path.exists(os.sep.join([self.tilearchive, self.tilepat.format(Z=zoom, X=tilex, Y=tiley)])):
+        if not os.path.exists(os.path.normpath(os.sep.join([self.tilearchive, self.tilepat.format(Z=zoom, X=tilex, Y=tiley)]))):
             return self.tileurl + self.tilepat.format(Z=zoom, X=tilex, Y=tiley)  # download if not archived
         else:
-            return os.sep.join([self.tilearchive, self.tilepat.format(Z=zoom, X=tilex, Y=tiley)])  # get form archive
+            return os.path.normpath(os.sep.join([self.tilearchive, self.tilepat.format(Z=zoom, X=tilex, Y=tiley)]))  # get form archive
 
     def tilepath2zoomxy(self, tile):
         'convert tile path to lat-lon indices and zoom'
         tileorder = os.path.splitext(self.tilepat.replace('{', '').replace('}', ''))[0].split('/')[-3:]
-        tilexyz = dict(zip(tileorder, os.path.splitext(tile)[0].split(os.sep)[-3:]))
+        tilexyz = dict(zip(tileorder, os.path.splitext(os.path.normpath(tile))[0].split(os.sep)[-3:]))
         return int(tilexyz['X']), int(tilexyz['Y']), int(tilexyz['Z'])
 
     def gettiles(self, lonmin, lonmax, latmin, latmax):
@@ -252,13 +250,17 @@ class OSM(object):
             self.ax._set_artist_props(im)
             self.ax.images.append(im)  # add image to axes
             self.currentimages.append(im)  # add image to current images list
+            log.debug('add {im} to cache'.format(im=im))
         self.ax.stale = True
 
     def draw(self,*args,**kwargs):
         if self._button:
                 return # don't redraw while panning/zooming
         log.info('Updating map, please hold...')
-        self.ax.apply_aspect()  # make sure xlim and ylim are updated to screen size. this is because we use equal aspect and datalim. see matplotlib details on axes set_aspect function
+        try:
+            self.ax.apply_aspect()  # make sure xlim and ylim are updated to screen size. this is because we use equal aspect and datalim. see matplotlib details on axes set_aspect function
+        except ValueError:
+            log.debug('some error with set aspect')
         x0, x1 = self.ax.get_xlim()  # get requested limits of x axis
         y0, y1 = self.ax.get_ylim()  # get requested limits of y axis
         self.relimcorrected(x0, x1, y0, y1)  # make sure limits are not out of map phisical boundaries. see osm module for more details.
