@@ -1,8 +1,4 @@
 import numpy as np
-from pyproj import Proj
-from matplotlib import path, cm
-from Sequence_type import *
-import pandas as pd
 
 
 def WnCfaultL(m, ifault=0):
@@ -31,16 +27,6 @@ def WnCfaultL(m, ifault=0):
     l = 10**((m - al)/bl) * 1000
     w = 10**((m - aw)/bw) * 1000
     return l, w
-
-
-def DistLatLonUTM(lat0, lon0, lats, lons):
-    e2u_zone=int(divmod(lon0, 6)[0])+31
-    e2u_conv=Proj(proj='utm', zone=e2u_zone, ellps='WGS84')
-    #Apply the converter
-    utmx, utmy=e2u_conv(lons, lats)
-    utmx0, utmy0=e2u_conv(lon0, lat0)
-    R = np.sqrt((utmx0 - utmx)**2 + (utmy0 - utmy)**2)
-    return R
 
 
 def AdjustEffectiveRadius(M):
@@ -87,7 +73,6 @@ def MakeCircleUTM(rm, lon0, lat0):
     xy[:, 1] = lat
     return lon, lat, xy
 
-
 def CheckInListC(list1, ClusterList):
     llist = len(list1)
     cols = []
@@ -106,7 +91,6 @@ def CheckInListC(list1, ClusterList):
     return cols
 
 def TMC(cat0):
-    print('running TMC clustering for: %s' % cat0.name)
     sortM = np.argsort(cat0.M)
     sortM = sortM[::-1]
     cat0.M = cat0.M[sortM]
@@ -139,7 +123,7 @@ def TMC(cat0):
         MatDist[ii, :] = p.contains_points(lonlat)
         Mat_AS[ii, :] = np.logical_and(Mat_dt[ii, :] > 0, Mat_dt[ii, :] < tw_AS[ii])
     I = np.logical_and(MatDist, Mat_AS)
-
+    
     print('Clustering...')
     IDS = np.zeros((sum(sum(I)), 5))
     IDS[:, 4] = Mat_dt[I]
@@ -159,7 +143,7 @@ def TMC(cat0):
     for ii in range(len(IDV)):
         ID = IDV[ii]
         # Make list for all events in row2 associated with ID
-        list1 = IDS[IDS[:, 0] == ID,1]
+        list1 = IDS[IDS[:,0]==ID,1]
 
         # add ID to list
         list1 = np.append(list1,ID)
@@ -207,56 +191,6 @@ def TMC(cat0):
         clist.append(ii+1)
     cat0.n = n
     cat0.c = c
-
+    
     return cat0
-
-
-def MakaClusterData(cat0, Mc, dM):
-
-        clist = np.unique(cat0.c)
-        na = []
-        nf = []
-        m0 = []
-        lat0 = []
-        lon0 = []
-        depth0 = []
-        ot0 = []
-        cid = []
-        c_type = []
-        for ii in range(len(clist)):
-            Ic = cat0.c == clist[ii]
-            mainshockm = max(cat0.M[Ic])
-            posM = np.argmax(cat0.M[Ic])
-            if mainshockm >= Mc + dM:
-                cid.append(clist[ii])
-                m0.append(mainshockm)
-                lat0.append(cat0.Lat[Ic][posM])
-                lon0.append(cat0.Long[Ic][posM])
-                depth0.append(cat0.Depth[Ic][posM])
-                ot0.append(cat0.ot[Ic][posM])
-
-                # foreshocks and aftershocks
-                If = cat0.ot[Ic] < cat0.ot[Ic][posM]
-                Ia = cat0.ot[Ic] > cat0.ot[Ic][posM]
-                nf.append(sum(If))
-                na.append(sum(Ia))
-                c_type.append(sequence_type(cat0.M[Ic]))
-
-        clusters = {'cid':cid,'m0':m0, 'lat0':lat0, 'lon0':lon0, 'depth0':depth0,
-                    'ot0':ot0, 'nf':nf, 'na':na, 'c_type':c_type}
-        CLUST = pd.DataFrame(data=clusters)
-
-        # write Cluster data
-        nameC = 'data/%s.clusters.a%2.1f.csv' % (cat0.name, dM)
-        print('Cluster name: %s' % nameC)
-        CLUST.to_csv(nameC)
-        print('Cdata saved: %s' % cat0.name)
-
-        declust = {'Depth':cat0.Depth, 'Long':cat0.Long, 'Lat':cat0.Lat, 'M':cat0.M,
-                   'ot':cat0.ot, 'Datenum':cat0.datenum, 'Cid':cat0.c}
-        declust = pd.DataFrame(data=declust)
-        declust.to_csv('data/%s.catC.csv' % cat0.name)
-        cat0.CLUST = CLUST
-        cat0.deCLUST = declust
-        return cat0
 
