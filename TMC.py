@@ -48,7 +48,8 @@ def AdjustEffectiveRadius(M):
 def windowsTMC(M):
     # t = 0.002*M**7.5
     # t = 0.75*np.exp(M)
-    t = 1.0*np.exp(M)
+    t = 0.1 * np.exp(M)
+    # t[t > 365] = 365
     [r_predicted, _] = WnCfaultL(M, ifault=0)
     d = (AdjustEffectiveRadius(M) * r_predicted) / 1000
     t = np.array(np.ceil(t))
@@ -143,10 +144,10 @@ def TMC(cat0):
     for ii in range(len(IDV)):
         ID = IDV[ii]
         # Make list for all events in row2 associated with ID
-        list1 = IDS[IDS[:,0]==ID,1]
+        list1 = IDS[IDS[:, 0] == ID, 1]
 
         # add ID to list
-        list1 = np.append(list1,ID)
+        list1 = np.append(list1, ID)
 
         # Check for ID in Clusterlist
         cols = CheckInListC(list1, ClusterList)
